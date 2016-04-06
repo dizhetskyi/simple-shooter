@@ -1,67 +1,85 @@
-var app = angular.module('simple-shooter', []);
+import styles from '../assets/style.scss'
+import { socket, canvas, ctx, game_width, game_height } from './constants';
 
-app.service('socket', socket);
-function socket(){
-  return io.connect('http://localhost:1337');
-}
+class Game {
+  constructor(){    
+    this.lastTime = Date.now();
 
-app.controller('main', ['socket', main]);
-function main(socket){
+    canvas.width = game_width;
+    canvas.height = game_height;
+  }
 
-  var vm = this;
-  var canvas = document.getElementById('game');
-  var ctx = canvas.getContext('2d');
+  init(){
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, game_width, game_height);
 
-  socket.on('init', function(){
-    console.log('socket init')
-  })
+    this.ball = new Ball();
 
-  var size = 10;
-  var x = canvas.width - size/2;
-  var y = canvas.height - size/2;
-  var vx = .25;
-  var vy = .25;
-  var lastTime = Date.now();
-  var delta = 0;
-  var xDir = yDir = 1;
+    this.update();
+  }
+  update(){
 
-  canvas.width = 600;
-  canvas.height = 480;
+    let now = Date.now();
 
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var dt = now - this.lastTime;
+    this.lastTime = now;
 
-  var frame;
+    this.ball.update(dt);
 
-  function update(){
+    this.draw();
+    
+    requestAnimationFrame(this.update.bind(this));
 
-    var now = Date.now();
-    dt = now - lastTime;
-    lastTime = now;
+  }
 
+  draw(){
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x, y, size, size);
-
-    var dx = dt * vx;
-    var dy = dt * vy;
-
-    if (x + dx + size > 600 || x + dx < 0){
-      xDir *= -1;
-    }
-    
-    if (y + dy + size > 480 || y + dy < 0){
-      yDir *= -1;
-    }
-    
-    x += dx * xDir;
-    y += dy * yDir;
-    
-    frame = requestAnimationFrame(update);
+    this.ball.draw();
   }
 
-  update();
 
 }
+
+class Ball {
+  constructor(){
+    this.size = 25;
+    this.x = game_width/2 - this.size/2;
+    this.y = game_height/2 - this.size/2;
+    this.vx = .2;
+    this.vy = .2;
+
+    this.xDir = 1;
+    this.yDir = 1;
+  }  
+
+  update(dt){
+
+    var dx = dt * this.vx;
+    var dy = dt * this.vy;
+
+    if (this.x + dx + this.size > game_width || this.x + dx < 0){
+      this.xDir *= -1;
+    }
+    
+    if (this.y + dy + this.size > game_height || this.y + dy < 0){
+      this.yDir *= -1;
+    }
+    
+    this.x += dx * this.xDir;
+    this.y += dy * this.yDir;
+
+    this.draw();
+  }
+
+  draw(){
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(this.x, this.y, this.size, this.size);
+
+  }
+}
+
+var game = new Game();
+game.init()
